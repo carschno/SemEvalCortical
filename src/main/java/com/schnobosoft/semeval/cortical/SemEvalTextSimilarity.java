@@ -7,14 +7,12 @@ import io.cortical.rest.model.Text;
 import io.cortical.services.Compare;
 import io.cortical.services.RetinaApis;
 import io.cortical.services.api.client.ApiException;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.nio.file.Files;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -63,7 +61,7 @@ public class SemEvalTextSimilarity
                     "Please specify input file and API key as 1st and 2nd command line arguments!");
         }
 
-        List<Pair<Text, Text>> input = readInput(inputFile);
+        List<Compare.CompareModels> input = readInput(inputFile);
         List<Metric> scores = retrieveSimilarities(input, apiKey);
         assert input.size() == scores.size();
         saveScores(scores, inputFile);
@@ -72,43 +70,19 @@ public class SemEvalTextSimilarity
     /**
      * Get the similarity metrics for each text pair
      *
-     * @param input  a list of {@link Text} pairs
+     * @param input  a list of {@link io.cortical.services.Compare.CompareModels}
      * @param apiKey the API key
      * @return a List of {@link Metric}s, one for each input pair
      */
-    private static List<Metric> retrieveSimilarities(List<Pair<Text, Text>> input, String apiKey)
+    private static List<Metric> retrieveSimilarities(List<Compare.CompareModels> input,
+            String apiKey)
             throws JsonProcessingException, ApiException
     {
         Compare compareApiInstance = new RetinaApis(RETINA_NAME, RETINA_IP, apiKey).compareApi();
 
-        // TODO: use compareBulk()?
-        List<Metric> metrics = new ArrayList<>(input.size());
-        for (Pair<Text, Text> pair : input) {
-            metrics.add(compareApiInstance.compare(pair.getLeft(), pair.getRight()));
-        }
-        return metrics;
-    }
-
-    /**
-     * Concatenate the contents of a list of pairs into a single array.
-     *
-     * @param input a list of pairs
-     * @param c     the class of the pair contents
-     * @return an array of class c
-     */
-    @SuppressWarnings(value = "unused")
-    private static <T> T[] pairsToArray(List<Pair<T, T>> input, Class<T> c)
-    {
-        assert input.size() % 2 == 0;
-        T[] inputArray = (T[]) Array.newInstance(c, input.size() / 2);
-        //                new Object[input.size() / 2];
-        int i = 0;
-        for (Pair<T, T> in : input) {
-            inputArray[i] = in.getLeft();
-            inputArray[i + 1] = in.getRight();
-            i += 2;
-        }
-        return inputArray;
+        return Arrays.asList(
+                compareApiInstance.compareBulk(
+                        input.toArray(new Compare.CompareModels[input.size()])));
     }
 
     /**
@@ -181,10 +155,10 @@ public class SemEvalTextSimilarity
      * Read an input file of tab-separated texts. Ignoring empty lines.
      *
      * @param inputFile the input {@link File}
-     * @return a list of {@link Pair}s, each holding two {@link Text}s as read from the file.
+     * @return a list of {@link io.cortical.services.Compare.CompareModels}, each holding two {@link Text}s which have been read from the file.
      * @throws IOException
      */
-    private static List<Pair<Text, Text>> readInput(File inputFile)
+    private static List<Compare.CompareModels> readInput(File inputFile)
             throws IOException
     {
         LOG.info("Reading input file " + inputFile);
@@ -192,7 +166,7 @@ public class SemEvalTextSimilarity
         return Files.lines(inputFile.toPath())
                 .filter((s) -> !s.isEmpty())
                 .map(l -> l.split("\t"))
-                .map(l -> Pair.of(new Text(l[0]), new Text(l[1])))
+                .map(l -> new Compare.CompareModels(new Text(l[0]), new Text(l[1])))
                 .collect(Collectors.toList());
     }
 

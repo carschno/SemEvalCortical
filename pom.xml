@@ -26,11 +26,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>3.4</version>
-    </dependency>
-    <dependency>
       <groupId>io.cortical</groupId>
       <artifactId>retina-service-java-api-client</artifactId>
       <version>2.2.1</version>
