@@ -1,6 +1,7 @@
 package com.schnobosoft.semeval.cortical;
 
 import io.cortical.rest.model.Metric;
+import io.cortical.services.RetinaApis;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -27,7 +28,7 @@ public class Util
 
     /**
      * Get the output file object for an input file. The output file begins with the {@link #COMMON_PREFIX},
-     * and appends the {@link SemEvalTextSimilarity#RETINA_NAME} and the {@code measure} name.
+     * and appends the retina name and the {@code measure} name.
      *
      * @param inputFile  the input file object, beginning with {@link #INPUT_FILE_PREFIX}.
      * @param measure    the {@link Measure}
@@ -38,7 +39,9 @@ public class Util
     public static File getOutputFile(File inputFile, Measure measure, Retina retinaName)
             throws IOException
     {
-        assert inputFile.getName().startsWith(INPUT_FILE_PREFIX);
+        if (!inputFile.getName().startsWith(INPUT_FILE_PREFIX)) {
+            throw new IllegalArgumentException(inputFile + " does not match expected pattern.");
+        }
 
         return new File(inputFile.getCanonicalPath().replace(INPUT_FILE_PREFIX,
                 COMMON_PREFIX + retinaName.name().toLowerCase() + "." + measure.name() + "."));
@@ -56,8 +59,10 @@ public class Util
     public static List<Optional> readScoresFile(File scoresFile)
             throws IOException
     {
+        if (!scoresFile.getName().startsWith(GS_FILE_PREFIX)) {
+            throw new IllegalArgumentException(scoresFile + " does not match expected pattern.");
+        }
         LOG.info("Reading scores file " + scoresFile);
-        assert scoresFile.getName().startsWith(GS_FILE_PREFIX);
 
         return Files.lines(scoresFile.toPath())
                 .map(line -> line.isEmpty() ? Optional.empty() : Optional.of(Double.valueOf(line)))
@@ -77,6 +82,11 @@ public class Util
             array[i] = doubles.get(i);
         }
         return array;
+    }
+
+    public static RetinaApis getApi(String apiKey, Retina retinaName, String ip)
+    {
+        return new RetinaApis(retinaName.name().toLowerCase(), ip, apiKey);
     }
 
     /**
