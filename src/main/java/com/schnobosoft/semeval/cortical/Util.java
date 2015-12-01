@@ -29,18 +29,19 @@ public class Util
      * Get the output file object for an input file. The output file begins with the {@link #COMMON_PREFIX},
      * and appends the {@link SemEvalTextSimilarity#RETINA_NAME} and the {@code measure} name.
      *
-     * @param inputFile the input file object, beginning with {@link #INPUT_FILE_PREFIX}.
-     * @param measure   the {@link Measure}
+     * @param inputFile  the input file object, beginning with {@link #INPUT_FILE_PREFIX}.
+     * @param measure    the {@link Measure}
+     * @param retinaName the {@link Retina}
      * @return a {@link File} object for the output file
      * @throws IOException
      */
-    public static File getOutputFile(File inputFile, Measure measure)
+    public static File getOutputFile(File inputFile, Measure measure, Retina retinaName)
             throws IOException
     {
         assert inputFile.getName().startsWith(INPUT_FILE_PREFIX);
 
         return new File(inputFile.getCanonicalPath().replace(INPUT_FILE_PREFIX,
-                COMMON_PREFIX + SemEvalTextSimilarity.RETINA_NAME + "." + measure.name() + "."));
+                COMMON_PREFIX + retinaName.name().toLowerCase() + "." + measure.name() + "."));
     }
 
     /**
@@ -87,5 +88,10 @@ public class Util
     public enum Measure
     {
         COSINE_SIM, EUCLIDIAN_DIST, JACCARD_DIST, OVERLAP, WEIGHTED
+    }
+
+    public enum Retina
+    {
+        EN_ASSOCIATIVE, EN_SYNONYMOUS
     }
 }

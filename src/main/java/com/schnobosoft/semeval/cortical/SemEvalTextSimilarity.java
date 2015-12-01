@@ -34,16 +34,12 @@ import java.util.stream.Collectors;
  */
 public class SemEvalTextSimilarity
 {
-    /* the Retina and API to use */
-    //    public static final String RETINA_NAME = "en_associative";
-    public static final String RETINA_NAME = "en_synonymous";
     private static final String RETINA_IP = "api.cortical.io";
-
     private static final Log LOG = LogFactory.getLog(SemEvalTextSimilarity.class);
 
-    /* the range of output scores for scaling */
     private static final double MAX_OUT = 5;
     private static final double MIN_OUT = 0;
+    private static Util.Retina RETINA_NAME = Util.Retina.EN_ASSOCIATIVE;    // default retina name
 
     public static void main(String[] args)
             throws IOException, ApiException
@@ -55,11 +51,16 @@ public class SemEvalTextSimilarity
             inputFile = new File(args[0]);
             assert inputFile.getName().startsWith(Util.INPUT_FILE_PREFIX);
             apiKey = args[1];
+            if (args.length > 2 && args[2].toLowerCase().startsWith("syn")) {
+                RETINA_NAME = Util.Retina.EN_SYNONYMOUS;
+            }
         }
         else {
             throw new IllegalArgumentException(
-                    "Please specify input file and API key as 1st and 2nd command line arguments!");
+                    "Call: " + SemEvalTextSimilarity.class.getCanonicalName()
+                            + " <input file> <api key> [<syn>]");
         }
+        LOG.info("Using Retina " + RETINA_NAME.name().toLowerCase());
 
         List<Compare.CompareModels> input = readInput(inputFile);
         List<Metric> scores = retrieveSimilarities(input, apiKey);
@@ -78,11 +79,11 @@ public class SemEvalTextSimilarity
             String apiKey)
             throws JsonProcessingException, ApiException
     {
-        Compare compareApiInstance = new RetinaApis(RETINA_NAME, RETINA_IP, apiKey).compareApi();
+        Compare compareApiInstance = new RetinaApis(
+                RETINA_NAME.name().toLowerCase(), RETINA_IP, apiKey).compareApi();
 
-        return Arrays.asList(
-                compareApiInstance.compareBulk(
-                        input.toArray(new Compare.CompareModels[input.size()])));
+        return Arrays.asList(compareApiInstance.compareBulk(
+                input.toArray(new Compare.CompareModels[input.size()])));
     }
 
     /**
@@ -124,7 +125,7 @@ public class SemEvalTextSimilarity
             throws IOException
     {
         for (Measure measure : Measure.values()) {
-            File outputFile = Util.getOutputFile(inputFile, measure);
+            File outputFile = Util.getOutputFile(inputFile, measure, RETINA_NAME);
             Writer writer = new BufferedWriter(new FileWriter(outputFile));
 
             List<Double> scores = scale(getScores(metrics, measure), measure);

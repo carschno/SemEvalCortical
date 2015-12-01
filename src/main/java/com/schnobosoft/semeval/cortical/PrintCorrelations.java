@@ -23,6 +23,7 @@ import java.util.Optional;
 public class PrintCorrelations
 {
     private static final Log LOG = LogFactory.getLog(PrintCorrelations.class);
+    private static Util.Retina RETINA_NAME = Util.Retina.EN_ASSOCIATIVE;    // default retina name
 
     public static void main(String[] args)
             throws IOException
@@ -30,11 +31,15 @@ public class PrintCorrelations
         File inputFile;
         if (args.length > 0) {
             inputFile = new File(args[0]);
+            if (args.length > 1 && args[1].toLowerCase().startsWith("syn")) {
+                RETINA_NAME = Util.Retina.EN_SYNONYMOUS;
+            }
         }
         else {
-            throw new IllegalArgumentException(
-                    "Please specify input file as command line argument!");
+            throw new IllegalArgumentException("Call: " + PrintCorrelations.class.getCanonicalName()
+                    + " <input file> [<syn>]");
         }
+        LOG.info("Using Retina " + RETINA_NAME.name().toLowerCase());
         printCorrelations(inputFile);
     }
 
@@ -49,11 +54,11 @@ public class PrintCorrelations
 
         for (Util.Measure correlationMeasure : Util.Measure.values()) {
             List<Optional> scores = Util.readScoresFile(
-                    Util.getOutputFile(inputFile, correlationMeasure));
+                    Util.getOutputFile(inputFile, correlationMeasure, RETINA_NAME));
 
             double pearson = getPearson(gs, scores);
             System.out.printf("Pearson correlation (%s, %s): %.4f%n",
-                    SemEvalTextSimilarity.RETINA_NAME, correlationMeasure, pearson);
+                    RETINA_NAME, correlationMeasure, pearson);
         }
     }
 
