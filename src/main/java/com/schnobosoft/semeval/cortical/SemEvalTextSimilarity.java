@@ -194,9 +194,12 @@ public class SemEvalTextSimilarity
             minIn = 0.0;
             break;
         case JACCARD_DIST:
-        case EUCLIDIAN_DIST:
             maxIn = 0.0;
             minIn = -1.0;
+            break;
+        case EUCLIDIAN_DIST:
+            maxIn = 0;
+            minIn = values.stream().min(Double::compare).get();
             break;
         default:
             maxIn = values.stream().max(Double::compare).get();
