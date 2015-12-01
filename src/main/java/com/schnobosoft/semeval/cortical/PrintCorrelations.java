@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static com.schnobosoft.semeval.cortical.Util.*;
+
 /**
  * Print correlations between a SemEval gold standards file and scores stored in appropriate files
  * using {@link SemEvalTextSimilarity}.
@@ -23,7 +25,7 @@ import java.util.Optional;
 public class PrintCorrelations
 {
     private static final Log LOG = LogFactory.getLog(PrintCorrelations.class);
-    private static Util.Retina RETINA_NAME = Util.Retina.EN_ASSOCIATIVE;    // default retina name
+    private static Retina RETINA_NAME = Retina.EN_ASSOCIATIVE;    // default retina name
 
     public static void main(String[] args)
             throws IOException
@@ -32,7 +34,7 @@ public class PrintCorrelations
         if (args.length > 0) {
             inputFile = new File(args[0]);
             if (args.length > 1 && args[1].toLowerCase().startsWith("syn")) {
-                RETINA_NAME = Util.Retina.EN_SYNONYMOUS;
+                RETINA_NAME = Retina.EN_SYNONYMOUS;
             }
         }
         else {
@@ -46,15 +48,15 @@ public class PrintCorrelations
     private static void printCorrelations(File inputFile)
             throws IOException
     {
-        assert inputFile.getName().startsWith(Util.INPUT_FILE_PREFIX);
+        assert inputFile.getName().startsWith(INPUT_FILE_PREFIX);
 
         File gsFile = new File(inputFile.getCanonicalPath()
-                .replace(Util.INPUT_FILE_PREFIX, Util.GS_FILE_PREFIX));
-        List<Optional> gs = Util.readScoresFile(gsFile);
+                .replace(INPUT_FILE_PREFIX, GS_FILE_PREFIX));
+        List<Optional> gs = readScoresFile(gsFile);
 
-        for (Util.Measure correlationMeasure : Util.Measure.values()) {
-            List<Optional> scores = Util.readScoresFile(
-                    Util.getOutputFile(inputFile, correlationMeasure, RETINA_NAME));
+        for (Measure correlationMeasure : Measure.values()) {
+            List<Optional> scores = readScoresFile(
+                    getOutputFile(inputFile, correlationMeasure, RETINA_NAME));
 
             double pearson = getPearson(gs, scores);
             System.out.printf("Pearson correlation (%s, %s): %.4f%n",
@@ -81,6 +83,6 @@ public class PrintCorrelations
             }
         }
         return new PearsonsCorrelation()
-                .correlation(Util.listToArray(gsList), Util.listToArray(sList));
+                .correlation(listToArray(gsList), listToArray(sList));
     }
 }
