@@ -2,6 +2,7 @@ package com.schnobosoft.semeval.cortical;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.schnobosoft.semeval.cortical.Util.Measure;
+import com.schnobosoft.semeval.cortical.Util.Retina;
 import io.cortical.rest.model.Metric;
 import io.cortical.rest.model.Text;
 import io.cortical.services.Compare;
@@ -16,6 +17,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.schnobosoft.semeval.cortical.Util.INPUT_FILE_PREFIX;
+import static com.schnobosoft.semeval.cortical.Util.getOutputFile;
+import static io.cortical.services.Compare.CompareModels;
 
 /**
  * Read text pairs from a SemEval input file, compare using the Cortical.io Compare API, and write
@@ -39,7 +44,7 @@ public class SemEvalTextSimilarity
 
     private static final double MAX_OUT = 5;
     private static final double MIN_OUT = 0;
-    private static Util.Retina RETINA_NAME = Util.Retina.EN_ASSOCIATIVE;    // default retina name
+    private static Retina RETINA_NAME = Retina.EN_ASSOCIATIVE;    // default retina name
 
     public static void main(String[] args)
             throws IOException, ApiException
@@ -49,10 +54,10 @@ public class SemEvalTextSimilarity
         File inputFile;
         if (args.length >= 2) {
             inputFile = new File(args[0]);
-            assert inputFile.getName().startsWith(Util.INPUT_FILE_PREFIX);
+            assert inputFile.getName().startsWith(INPUT_FILE_PREFIX);
             apiKey = args[1];
             if (args.length > 2 && args[2].toLowerCase().startsWith("syn")) {
-                RETINA_NAME = Util.Retina.EN_SYNONYMOUS;
+                RETINA_NAME = Retina.EN_SYNONYMOUS;
             }
         }
         else {
@@ -62,28 +67,27 @@ public class SemEvalTextSimilarity
         }
         LOG.info("Using Retina " + RETINA_NAME.name().toLowerCase());
 
-        List<Compare.CompareModels> input = readInput(inputFile);
+        CompareModels[] input = readInput(inputFile);
         List<Metric> scores = retrieveSimilarities(input, apiKey);
-        assert input.size() == scores.size();
+        assert input.length == scores.size();
         saveScores(scores, inputFile);
     }
 
     /**
      * Get the similarity metrics for each text pair
      *
-     * @param input  a list of {@link io.cortical.services.Compare.CompareModels}
+     * @param input  a list of {@link CompareModels}
      * @param apiKey the API key
      * @return a List of {@link Metric}s, one for each input pair
      */
-    private static List<Metric> retrieveSimilarities(List<Compare.CompareModels> input,
+    private static List<Metric> retrieveSimilarities(CompareModels[] input,
             String apiKey)
             throws JsonProcessingException, ApiException
     {
         Compare compareApiInstance = new RetinaApis(
                 RETINA_NAME.name().toLowerCase(), RETINA_IP, apiKey).compareApi();
 
-        return Arrays.asList(compareApiInstance.compareBulk(
-                input.toArray(new Compare.CompareModels[input.size()])));
+        return Arrays.asList(compareApiInstance.compareBulk(input));
     }
 
     /**
@@ -125,7 +129,7 @@ public class SemEvalTextSimilarity
             throws IOException
     {
         for (Measure measure : Measure.values()) {
-            File outputFile = Util.getOutputFile(inputFile, measure, RETINA_NAME);
+            File outputFile = getOutputFile(inputFile, measure, RETINA_NAME);
             Writer writer = new BufferedWriter(new FileWriter(outputFile));
 
             List<Double> scores = scale(getScores(metrics, measure), measure);
@@ -156,19 +160,20 @@ public class SemEvalTextSimilarity
      * Read an input file of tab-separated texts. Ignoring empty lines.
      *
      * @param inputFile the input {@link File}
-     * @return a list of {@link io.cortical.services.Compare.CompareModels}, each holding two {@link Text}s which have been read from the file.
+     * @return an array {@link CompareModels}, each holding two {@link Text}s which have been read from the file.
      * @throws IOException
      */
-    private static List<Compare.CompareModels> readInput(File inputFile)
+    private static CompareModels[] readInput(File inputFile)
             throws IOException
     {
         LOG.info("Reading input file " + inputFile);
-        assert (inputFile.getName().startsWith(Util.INPUT_FILE_PREFIX));
-        return Files.lines(inputFile.toPath())
+        assert inputFile.getName().startsWith(INPUT_FILE_PREFIX);
+        List<CompareModels> lines = Files.lines(inputFile.toPath())
                 .filter((s) -> !s.isEmpty())
-                .map(l -> l.split("\t"))
-                .map(l -> new Compare.CompareModels(new Text(l[0]), new Text(l[1])))
+                .map(line -> line.split("\t"))
+                .map(line -> new CompareModels(new Text(line[0]), new Text(line[1])))
                 .collect(Collectors.toList());
+        return lines.toArray(new CompareModels[lines.size()]);
     }
 
     /**
