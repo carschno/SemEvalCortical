@@ -8,9 +8,11 @@ import org.apache.commons.logging.LogFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Utilities class for I/O and data conversion.
@@ -23,7 +25,9 @@ public class Util
     public static final String COMMON_PREFIX = "STS.";
     public static final String INPUT_FILE_PREFIX = COMMON_PREFIX + "input.";
     public static final String GS_FILE_PREFIX = COMMON_PREFIX + "gs.";
-
+    public static final String RETINA_IP = "api.cortical.io";
+    public static final double MAX_OUT = 5;
+    public static final double MIN_OUT = 0;
     private static final Log LOG = LogFactory.getLog(Util.class);
 
     /**
@@ -87,6 +91,87 @@ public class Util
     public static RetinaApis getApi(String apiKey, Retina retinaName, String ip)
     {
         return new RetinaApis(retinaName.name().toLowerCase(), ip, apiKey);
+    }
+
+    /**
+     * Scale a collection of double values to a new scale as defined by min and max.
+     *
+     * @param values  the values to scale
+     * @param measure the {@link Measure} to use for scaling (some have predefined min/max boundaries)
+     * @return a list of doubles in the range between {@link #MIN_OUT} and {@link #MAX_OUT}
+     */
+    public static List<Double> scale(Collection<Double> values, Measure measure)
+    {
+        double maxIn;
+        double minIn;
+
+        switch (measure) {
+        case COSINE_SIM:
+            maxIn = 1.0;
+            minIn = 0.0;
+            break;
+        case JACCARD_DIST:
+            maxIn = 0.0;
+            minIn = -1.0;
+            break;
+        case EUCLIDIAN_DIST:
+            maxIn = 0;
+            minIn = values.stream().min(Double::compare).get();
+            break;
+        default:
+            maxIn = values.stream().max(Double::compare).get();
+            minIn = values.stream().min(Double::compare).get();
+        }
+        return values.stream()
+                .map(value -> scaleValue(MIN_OUT, MAX_OUT, maxIn, minIn, value))
+                .collect(Collectors.toList());
+    }
+
+    public static double scaleValue(double min, double max, double maxIn, double minIn,
+            Double value)
+    {
+        return (((value - minIn) * (max - min)) / (maxIn - minIn)) + min;
+    }
+
+    /**
+     * Get the value for a specific measure type from a {@link Metric}.
+     * Distance measures ({@link Measure#EUCLIDIAN_DIST} and {@link Measure#JACCARD_DIST}) are
+     * negated so that larger values mean more similarity in all cases.
+     *
+     * @param metric  a {@link Metric} object
+     * @param measure a {@link Measure} definition
+     * @return the value for the measure
+     */
+    private static Double getSimilarity(Metric metric, Measure measure)
+    {
+        switch (measure) {
+        case WEIGHTED:
+            return metric.getWeightedScoring();
+        case COSINE_SIM:
+            return metric.getCosineSimilarity();
+        case EUCLIDIAN_DIST:
+            return -metric.getEuclideanDistance();  // negative for distance -> similarity
+        case JACCARD_DIST:
+            return -metric.getJaccardDistance();    // negative for distance -> similarity
+        case OVERLAP:
+            return (double) metric.getOverlappingAll();
+        default:
+            throw new IllegalArgumentException("Invalid measure: " + measure);
+        }
+    }
+
+    /**
+     * Get the scores for a specific measure from a list of {@link Metric}s.
+     *
+     * @param metrics a list of {@link Metric} objects
+     * @param measure the {@link Measure} type
+     * @return a list of scores, one for each input {@link Metric}
+     */
+    public static List<Double> getScores(Metric[] metrics, Measure measure)
+    {
+        return Stream.of(metrics)
+                .map(metric -> getSimilarity(metric, measure))
+                .collect(Collectors.toList());
     }
 
     /**
