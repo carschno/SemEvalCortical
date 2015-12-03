@@ -59,8 +59,7 @@ public class SemEvalTextSimilarity
             assert inputFile.getName().startsWith(INPUT_FILE_PREFIX);
             apiKey = args[1];
             retinaName = (args.length > 2 && args[2].toLowerCase().startsWith("syn")) ?
-                    EN_SYNONYMOUS :
-                    DEFAULT_RETINA_NAME;
+                    EN_SYNONYMOUS : DEFAULT_RETINA_NAME;
         }
         else {
             throw new IllegalArgumentException(

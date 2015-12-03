@@ -22,7 +22,7 @@ import static com.schnobosoft.semeval.cortical.Util.*;
  * Perform comparison of texts only after extracting the keywords.
  * <p>
  * Note: initial experiments indicate that this performs significantly worse than immediately
- * calling compare on the input texts as done in {@link SemEvalTextSimilarity}.
+ * calling {@code compare} on the input texts as done in {@link SemEvalTextSimilarity}.
  *
  * @author Carsten Schnober
  */
