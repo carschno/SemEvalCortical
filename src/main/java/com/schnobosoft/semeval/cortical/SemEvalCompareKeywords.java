@@ -25,7 +25,10 @@ import static com.schnobosoft.semeval.cortical.Util.*;
  * calling {@code compare} on the input texts as done in {@link SemEvalTextSimilarity}.
  *
  * @author Carsten Schnober
+ * @deprecated This has been an experiment incorporating the keyword API in a way that is not
+ * recommended.
  */
+@Deprecated
 public class SemEvalCompareKeywords
 {
     private static final Log LOG = LogFactory.getLog(SemEvalCompareKeywords.class);
